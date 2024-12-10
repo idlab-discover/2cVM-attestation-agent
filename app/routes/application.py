@@ -6,7 +6,7 @@ router = APIRouter(prefix="/v1/application", tags=["Application"])
 # TODO:
 # Check if manifest is expected according to lock
 # Read manifest, data or unlock for binary?
-# Decrypt binary
+# Decrypt binary or store input data
 
 @router.post("/")
 async def application(request: Request):
@@ -23,14 +23,14 @@ async def application(request: Request):
 # TODO:
 # Check if user id is valid
 # Check if user with user id should get result (from lock)
+# Check if there is a result
 # If yes, provide result. (possibly sign with key for provenance?)
 
 @router.get("/result")
 async def result(user_identification: str = Query(...)):
     try:
-        #TODO: Check user id and return result (if it exists)
 
-        return Response(status_code=200, content="{result: something}", media_type="application/json")
+        return Response(status_code=200, content="{result : something}", media_type="application/json")
     
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
