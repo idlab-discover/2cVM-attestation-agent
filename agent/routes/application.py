@@ -32,11 +32,13 @@ async def application(request: Request):
         data = await request.json()
         
         verifiable_credential = VerifiableCredential(**data)
+
+        # TODO: Check if VC is expected, if yes: store to file
         
-        print(verifiable_credential)
-
-        # TODO: parse VC from request
-
+        # Note: We can only mount folders, not individual files -> Store VC to file in folder with name of component that should receive it.
+        # A production implementation should pass these files in a different way (using Rust)
+        
+        # TODO: Check if all components and data present -> yes? compose and run
         #bin_path = os.path.join(HOME_DIR, BIN_FILE)
         #result = subprocess.run([bin_path, str("pass dir here")], capture_output=True, text=True)
 
@@ -46,13 +48,6 @@ async def application(request: Request):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    
-def gen_pass_files_string():
-    source_path = ""    
-    mount_path = ""
-    dir_str = f"--dir {source_path}::{mount_path}"
-
-    return dir_str
 
 # TODO:
 # Verify party identity
@@ -68,3 +63,12 @@ async def result(user_identification: str = Query(...)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+def compose_wasm():
+    return True
+
+def run_wasm():
+    return True    
+
+def verify_identity():
+    return True

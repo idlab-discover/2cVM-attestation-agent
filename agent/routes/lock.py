@@ -10,8 +10,6 @@ HOME_DIR = os.path.expanduser("~")
 LOCK_FOLDER = os.path.join(HOME_DIR, ".lock")
 LOCK_FILE = "commitment-manifest.json"
 
-global commitment_manifest
-
 @router.post("/")
 async def lock(request: Request):
     data = await request.json()
@@ -36,6 +34,7 @@ async def lock(request: Request):
         # Nothing is ever really written to disk and thus everything is encrypted.
         with open(file_path, 'w') as file:
             json.dump(data, file)
+            # Save CM as state so other enpoints don't need to parse json file every time
             request.app.state.commitment_manifest = CommitmentManifest(**data)
             print("Commitment manifest has been locked.")
             
