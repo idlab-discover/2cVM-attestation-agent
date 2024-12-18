@@ -71,10 +71,12 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
         full_attestation = {
             "platform_attestation": platform_attestation,
             "commitment_attestation": {
-                "commitment_manifest": commitment_manifest.model_dump() if commitment_manifest else {},
-                "commitment_manifest_signature": base64.b64encode(commitment_manifest_signature).decode("utf-8")} if commitment_manifest_signature else {},
-            "tee_pub_key" : tee_pub_key_b64
+                "commitment_manifest": commitment_manifest.model_dump() if commitment_manifest else None,
+                "commitment_manifest_signature": base64.b64encode(commitment_manifest_signature).decode("utf-8") if commitment_manifest_signature else None
+            },
+            "tee_pub_key": tee_pub_key_b64
         }
+
 
         if SEV_SNP_enabled:
             os.remove(report_path)
