@@ -1,20 +1,24 @@
 import base64
 import subprocess
-import traceback
 import os
-from fastapi import APIRouter, HTTPException, Response, Query ,Request
-from fastapi.responses import JSONResponse
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization, hashes
+import traceback
 import hashlib
 
-from agent.models.commitment_manifest import CommitmentManifest
+from fastapi import APIRouter, HTTPException, Query ,Request
+from fastapi.responses import JSONResponse
 
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
+
+
+from agent.models.commitment_manifest import CommitmentManifest
+from agent.config import SEV_SNP_enabled
 
 router = APIRouter(prefix="/v1/attestation", tags=["Application"])
 
-HOME_DIR = os.path.expanduser("~")
-KEY_FOLDER = "/.keys"
+HOME_DIR = os.path.join(os.path.expanduser("~"), ".attestation-agent")
+KEY_FOLDER = os.path.join(HOME_DIR, "keys")
+
 BIN_FILE = "snpguest"
 
 # TODO:
@@ -42,12 +46,15 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
                 format=serialization.PublicFormat.SubjectPublicKeyInfo)
             ).decode("utf-8")
 
-        report_path = generate_platform_report(hex_nonce, tee_pub_key)
+        if not SEV_SNP_enabled:
+            platform_attestation = "abcdef"
+        else:
+            report_path = generate_platform_report(hex_nonce, tee_pub_key)
 
-        # TODO: Read binary report, and encode it to b64
-        
-        with open(report_path, 'rb') as f:
-            platform_attestation = base64.b64encode(f.read()).decode("utf-8")
+            # TODO: Read binary report, and encode it to b64
+            
+            with open(report_path, 'rb') as f:
+                platform_attestation = base64.b64encode(f.read()).decode("utf-8")
         
         # Verify that platform is locked, if not -> return empty 
         if hasattr(request.app.state, 'commitment_manifest'):
@@ -58,24 +65,26 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
                 hashes.SHA256()
             )
         else:
-            commitment_manifest = {}
-            commitment_manifest_signature = ""
+            commitment_manifest = None
+            commitment_manifest_signature = None
             
         full_attestation = {
             "platform_attestation": platform_attestation,
             "commitment_attestation": {
-                "commitment_manifest": commitment_manifest.model_dump(),
-                "commitment_manifest_signature": base64.b64encode(commitment_manifest_signature).decode("utf-8")},
+                "commitment_manifest": commitment_manifest.model_dump() if commitment_manifest else {},
+                "commitment_manifest_signature": base64.b64encode(commitment_manifest_signature).decode("utf-8")} if commitment_manifest_signature else {},
             "tee_pub_key" : tee_pub_key_b64
         }
 
-        os.remove(report_path)
+        if SEV_SNP_enabled:
+            os.remove(report_path)
 
         return JSONResponse(content=full_attestation)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid nonce: {e}")
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
 
@@ -123,10 +132,10 @@ def generate_key_pair():
     )
     public_key = private_key.public_key()
     
-    if not os.path.exists(HOME_DIR + KEY_FOLDER):
-        os.mkdir(HOME_DIR + KEY_FOLDER)
+    if not os.path.exists(KEY_FOLDER):
+        os.mkdir(KEY_FOLDER)
     
-    with open(os.path.join(HOME_DIR + KEY_FOLDER, "private_key.pem"), "wb") as private_file:
+    with open(os.path.join(KEY_FOLDER, "private_key.pem"), "wb") as private_file:
         private_file.write(
             private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -135,7 +144,7 @@ def generate_key_pair():
             )
         )
 
-    with open(os.path.join(HOME_DIR + KEY_FOLDER, "public_key.pem"), "wb") as public_file:
+    with open(os.path.join(KEY_FOLDER, "public_key.pem"), "wb") as public_file:
         public_file.write(
             public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -146,7 +155,7 @@ def generate_key_pair():
     return private_key, public_key
 
 def read_key_pair():
-    with open(os.path.join(HOME_DIR + KEY_FOLDER, "public_key.pem"), "rb") as pub_file:
+    with open(os.path.join(KEY_FOLDER, "public_key.pem"), "rb") as pub_file:
         public_key = serialization.load_pem_public_key(
             pub_file.read()
         )
@@ -156,7 +165,7 @@ def read_key_pair():
     else:
         raise ValueError("The public key is not of type RSAPublicKey.")
 
-    with open(os.path.join(HOME_DIR + KEY_FOLDER, "private_key.pem"), "rb") as priv_file:
+    with open(os.path.join(KEY_FOLDER, "private_key.pem"), "rb") as priv_file:
         private_key = serialization.load_pem_private_key(
             priv_file.read(),
             password=None

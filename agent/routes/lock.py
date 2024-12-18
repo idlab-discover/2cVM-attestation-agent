@@ -1,13 +1,15 @@
 import json
 import os
+
 from fastapi import APIRouter, HTTPException, Request, Response
+
 from agent.models.commitment_manifest import CommitmentManifest
 
 router = APIRouter(prefix="/v1/lock", tags=["Lock"])
 
 # Define folders for manifest
-HOME_DIR = os.path.expanduser("~")
-LOCK_FOLDER = os.path.join(HOME_DIR, ".lock")
+HOME_DIR = os.path.join(os.path.expanduser("~"), ".attestation-agent")
+LOCK_FOLDER = os.path.join(HOME_DIR, "lock")
 LOCK_FILE = "commitment-manifest.json"
 
 @router.post("/")

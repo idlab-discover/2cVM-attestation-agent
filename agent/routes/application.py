@@ -1,7 +1,9 @@
 import json
 import os
 import subprocess
+
 from fastapi import APIRouter, HTTPException, Request, Response, Query
+
 from agent.models.commitment_manifest import CommitmentManifest
 from agent.models.verifiable_credential import VerifiableCredential
 
