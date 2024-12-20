@@ -3,6 +3,7 @@ import subprocess
 import os
 import traceback
 import hashlib
+import getpass
 
 from fastapi import APIRouter, HTTPException, Query ,Request
 from fastapi.responses import JSONResponse
@@ -117,16 +118,22 @@ def generate_platform_report(hex_nonce, tee_pub_key):
     report_file_path = os.path.join(HOME_DIR, hex_nonce + "report.bin")
 
     # Note: for prod, this app should be rewritten in Rust and just use the snpguest functions directly, avoiding all these 'disk' writes.
-    result = subprocess.run(["sudo", os.path.join(BIN_DIR, BIN_FILE), str("report"), str(report_file_path), str(user_data_file_path)], 
+    result = subprocess.run(["/usr/bin/sudo", os.path.join(BIN_DIR, BIN_FILE), str("report"), str(report_file_path), str(user_data_file_path)], 
                             capture_output=True, text=True)
 
-    # Clean up
-    os.remove(user_data_file_path)
-
-    if result.returncode == 0:
-        return report_file_path
-    else:
+    if result.returncode != 0:
         raise Exception
+    
+    # This is ugly, if this is implemented in rust with direct integration into snpguest this wouldn't be necessary.
+    result = subprocess.run(["/usr/bin/sudo", "/usr/bin/chown", getpass.getuser(), str(report_file_path), str(user_data_file_path)], 
+                            capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise Exception
+    
+    os.remove(user_data_file_path)    
+    
+    return report_file_path
     
 def generate_key_pair():
     private_key = rsa.generate_private_key(
