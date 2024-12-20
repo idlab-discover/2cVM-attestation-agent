@@ -19,6 +19,7 @@ router = APIRouter(prefix="/v1/attestation", tags=["Application"])
 HOME_DIR = os.path.join(os.path.expanduser("~"), ".attestation-agent")
 KEY_FOLDER = os.path.join(HOME_DIR, "keys")
 
+BIN_DIR = os.path.expanduser("~")
 BIN_FILE = "snpguest"
 
 # TODO:
@@ -116,7 +117,7 @@ def generate_platform_report(hex_nonce, tee_pub_key):
     report_file_path = os.path.join(HOME_DIR, hex_nonce + "report.bin")
 
     # Note: for prod, this app should be rewritten in Rust and just use the snpguest functions directly, avoiding all these 'disk' writes.
-    result = subprocess.run([os.path.join(HOME_DIR, BIN_FILE), str("report"), str(report_file_path), str(user_data_file_path)], 
+    result = subprocess.run(["sudo", os.path.join(BIN_DIR, BIN_FILE), str("report"), str(report_file_path), str(user_data_file_path)], 
                             capture_output=True, text=True)
 
     # Clean up
