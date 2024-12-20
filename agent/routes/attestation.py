@@ -111,7 +111,7 @@ def generate_platform_report(hex_nonce, tee_pub_key):
         f.write(user_data)
 
     # Check if snpguest binary is installed
-    if not os.path.exists(os.path.join(HOME_DIR, BIN_FILE)):
+    if not os.path.exists(os.path.join(BIN_DIR, BIN_FILE)):
         raise Exception
 
     report_file_path = os.path.join(HOME_DIR, hex_nonce + "report.bin")
