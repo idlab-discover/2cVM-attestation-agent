@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from agent.models.commitment_manifest import CommitmentManifest
-from agent.routes import lock, attestation, application
+from agent.routes import lock, attestation, application, status
 from agent.routes.lock import HOME_DIR, LOCK_FILE, LOCK_FOLDER
 
 @asynccontextmanager
