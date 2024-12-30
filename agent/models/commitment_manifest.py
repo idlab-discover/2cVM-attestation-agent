@@ -1,43 +1,157 @@
+import asyncio
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+
+
+# As CM is only set once, all properties are private and there are no setter. 
 
 class Participant(BaseModel):
-    name: str
-    DID: str
+    _name: str
+    _DID: str
+    
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def DID(self) -> str:
+        return self._DID
 
 class Component(BaseModel):
-    name: str
-    participant: str
+    _name: str
+    _participant: str
+    
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def participant(self) -> str:
+        return self._participant
 
 class Data(BaseModel):
-    name: str
-    participant: str
+    _name: str
+    _participant: str
+    
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def participant(self) -> str:
+        return self._participant
 
 class DataPermissionBase(BaseModel):
-    type: str
-    filename: str
+    _type: str
+    _filename: str
+    
+    @property
+    def type(self) -> str:
+        return self._type
+
+    @property
+    def filename(self) -> str:
+        return self._filename
 
 class DataPermissionComposite(DataPermissionBase):
-    sources: List[str]
+    _sources: List[str]
     
+    @property
+    def sources(self) -> List[str]:
+        return self._sources
+
 class DataPermissionSingle(DataPermissionBase):
-    source: str
+    _source: str
+    
+    @property
+    def source(self) -> str:
+        return self._source
 
 class Output(BaseModel):
-    type: str
-    function: str
-    participant: str
+    _type: str
+    _function: str
+    _participant: str
+    
+    @property
+    def type(self) -> str:
+        return self._type
+
+    @property
+    def function(self) -> str:
+        return self._function
+
+    @property
+    def participant(self) -> str:
+        return self._participant
 
 class Permission(BaseModel):
-    component: str
-    data_permissions: List[DataPermissionBase]
-    output: List[Output]
+    _component: str
+    _data_permissions: List[DataPermissionBase]
+    _output: List[Output]
+    
+    @property
+    def component(self) -> str:
+        return self._component
+
+    @property
+    def data_permissions(self) -> List[DataPermissionBase]:
+        return self._data_permissions
+
+    @property
+    def output(self) -> List[Output]:
+        return self._output
 
 class CommitmentManifest(BaseModel):
-    participants: List[Participant]
-    components: List[Component]
-    data: List[Data]
-    composition: str
-    permissions: List[Permission]
+    _participants: List[Participant]
+    _components: List[Component]
+    _data: List[Data]
+    _composition: str
+    _permissions: List[Permission]
+    
+    @property
+    def participants(self) -> List[Participant]:
+        return self._participants
+
+    @property
+    def components(self) -> List[Component]:
+        return self._components
+
+    @property
+    def data(self) -> List[Data]:
+        return self._data
+
+    @property
+    def composition(self) -> str:
+        return self._composition
+
+    @property
+    def permissions(self) -> List[Permission]:
+        return self._permissions
+
     class Config:
         arbitrary_types_allowed = True
+        
+
+class ThreadSafeCommitmentManifest():
+    _data: Optional[CommitmentManifest] = None
+    _asyncio_lock: asyncio.Lock = None
+
+    def __init__(self):
+        self._asyncio_lock = asyncio.Lock()
+    
+    # Thread-safe write once to lock TEE to CM
+    async def lock(self, **data):
+        try:
+            await self._asyncio_lock.acquire()
+            if self._data == None:
+                self._data = CommitmentManifest(**data)
+        finally:
+                self._asyncio_lock.release()
+                
+    def is_locked(self):
+        return self._data != None
+    
+    # Read-only
+    @property
+    def data(self):
+        return self._data

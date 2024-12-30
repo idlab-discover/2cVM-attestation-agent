@@ -1,9 +1,10 @@
 import json
 import os
+import traceback
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from agent.models.commitment_manifest import CommitmentManifest
+from agent.models.commitment_manifest import CommitmentManifest, ThreadSafeCommitmentManifest
 
 router = APIRouter(prefix="/v1/lock", tags=["Lock"])
 
@@ -16,11 +17,11 @@ LOCK_FILE = "commitment-manifest.json"
 async def lock(request: Request):
     data = await request.json()
     try:
-        # Check if TEE is locked to avoid parsing JSON
-        if os.path.exists(LOCK_FOLDER) and os.listdir(LOCK_FOLDER):
+
+        # Check if TEE is locked already
+        thread_safe_commitment_manifest: ThreadSafeCommitmentManifest = getattr(request.app.state, 'commitment_manifest', None)
+        if thread_safe_commitment_manifest != None and thread_safe_commitment_manifest.data != None:
             raise HTTPException(status_code=400, detail="TEE is already locked")
-        else:
-            print(f"Folder {LOCK_FOLDER} does not exist or is empty.")
 
         # Not locked, parse JSON
         data = await request.json()
@@ -37,7 +38,9 @@ async def lock(request: Request):
         with open(file_path, 'w') as file:
             json.dump(data, file)
             # Save CM as state so other enpoints don't need to parse json file every time
-            request.app.state.commitment_manifest = CommitmentManifest(**data)
+            thread_safe_commitment_manifest = ThreadSafeCommitmentManifest()
+            await thread_safe_commitment_manifest.lock(**data)
+            request.app.state.commitment_manifest = thread_safe_commitment_manifest
             print("Commitment manifest has been locked.")
             
         return Response(status_code=200)
@@ -47,5 +50,5 @@ async def lock(request: Request):
     except HTTPException as e:
         raise e
     except Exception as e:
-        print(e)
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
