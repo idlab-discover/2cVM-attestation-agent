@@ -17,5 +17,5 @@ pip install -r requirements.txt
 
 Run webserver:
 ```bash
-uvicorn app.main:app --reload
+uvicorn agent.main:app --reload
 ```
