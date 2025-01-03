@@ -3,29 +3,29 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 class Membership(BaseModel):
-    membershipType: str
-    website: str
-    contact: str
-    since: datetime
+    membershipType: str = Field(..., readonly=True)
+    website: str = Field(..., readonly=True)
+    contact: str = Field(..., readonly=True)
+    since: datetime = Field(..., readonly=True)
     
 class Manifest(BaseModel):
-    id: str
-    type: str
-    body: Union[str, dict]
+    id: str = Field(..., readonly=True)
+    type: str = Field(..., readonly=True)
+    body: Union[str, dict] = Field(..., readonly=True)
 
 class CredentialSubject(BaseModel):
-    id: str
-    transferRequestId: str
-    membership: Membership
-    manifest: Manifest
+    id: str = Field(..., readonly=True)
+    transferRequestId: str = Field(..., readonly=True)
+    membership: Membership = Field(..., readonly=True)
+    manifest: Manifest = Field(..., readonly=True)
     
 class VerifiableCredential(BaseModel):
-    context: Union[List[Union[str, Dict[str, str]]], None] = Field(..., alias="@context")
-    id: str
-    type: List[str]
-    issuer: str
-    issuanceDate: datetime
-    credentialSubject: CredentialSubject
+    context: Union[List[Union[str, Dict[str, str]]], None] = Field(..., alias="@context", readonly=True)
+    id: str = Field(..., readonly=True)
+    type: List[str] = Field(..., readonly=True)
+    issuer: str = Field(..., readonly=True)
+    issuanceDate: datetime = Field(..., readonly=True)
+    credentialSubject: CredentialSubject = Field(..., readonly=True)
     
     class Config:
         arbitrary_types_allowed = True

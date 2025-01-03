@@ -5,11 +5,11 @@
 
 import asyncio
 from typing import Dict, Optional
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, Field, RootModel
 
 
 class PartySubmissionState(RootModel):
-    root: Dict[str, bool]
+    root: Dict[str, bool] = Field(..., readonly=True)
 
     def mark_data_as_submitted(self, data_name: str):
         if data_name in self.root:
