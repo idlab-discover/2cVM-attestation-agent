@@ -11,31 +11,17 @@ from fastapi.responses import JSONResponse
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
-
+import agent.config as config
 from agent.models.commitment_manifest import CommitmentManifest, ThreadSafeCommitmentManifest
 from agent.config import SEV_SNP_enabled
 
 router = APIRouter(prefix="/v1/attestation", tags=["Application"])
 
-HOME_DIR = os.path.join(os.path.expanduser("~"), ".attestation-agent")
-KEY_FOLDER = os.path.join(HOME_DIR, "keys")
-
-BIN_DIR = os.path.expanduser("~")
-BIN_FILE = "snpguest"
-
-# TODO:
-# Check if keypair exists
-# Generate asym keypair
-# Concat pub key and hash of nonce
-# Request attestation report (include user and hash of pub key)
-# Check if TEE is locked, get manifest and sign lock with key
-# Send both reports + pub key
-
 @router.get("/")
 async def attestation(request: Request, hex_nonce: str = Query(...)):
     try:
         # Check if key pair already exist, else generate
-        if not (os.path.exists(os.path.join(HOME_DIR + KEY_FOLDER, "private_key.pem")) or os.path.exists(os.path.join(HOME_DIR + KEY_FOLDER, "public_key.pem"))):
+        if not (os.path.exists(os.path.join(config.AGENT_DIR, "private_key.pem")) or os.path.exists(os.path.join(config.AGENT_DIR, "public_key.pem"))):
             tee_priv_key, tee_pub_key = generate_key_pair()
         else:
             tee_priv_key, tee_pub_key = read_key_pair()
@@ -104,20 +90,20 @@ def generate_platform_report(hex_nonce, tee_pub_key):
     
     user_data = nonce_hash + public_key_hash
     
-    user_data_file_path = os.path.join(HOME_DIR, hex_nonce + "user_data.bin")
+    user_data_file_path = os.path.join(config.HOME_DIR, hex_nonce + "user_data.bin")
     
     with open(user_data_file_path, 'wb') as f:
         f.write(user_data)
 
     # Check if snpguest binary is installed
-    if not os.path.exists(os.path.join(BIN_DIR, BIN_FILE)):
+    if not os.path.exists(config.SNP_GUEST_BIN_FILE):
         raise Exception
 
-    report_file_path = os.path.join(HOME_DIR, hex_nonce + "report.bin")
+    report_file_path = os.path.join(config.AGENT_DIR, hex_nonce + "report.bin")
 
     # Note: for prod, this app should be rewritten in Rust and just use the snpguest functions directly, avoiding all these 'disk' writes.
     # These files are actually written to a virtual fs in encrypted memory, no nothing leaks to host.
-    result = subprocess.run(["/usr/bin/sudo", os.path.join(BIN_DIR, BIN_FILE), str("report"), str(report_file_path), str(user_data_file_path)], 
+    result = subprocess.run(["/usr/bin/sudo", config.SNP_GUEST_BIN_FILE, str("report"), str(report_file_path), str(user_data_file_path)], 
                             capture_output=True, text=True)
 
     if result.returncode != 0:
@@ -142,12 +128,12 @@ def generate_key_pair():
     )
     public_key = private_key.public_key()
     
-    if not os.path.exists(KEY_FOLDER):
-        os.mkdir(KEY_FOLDER)
+    if not os.path.exists(config.KEY_FOLDER):
+        os.mkdir(config.KEY_FOLDER)
     
     # Write keys to file
     # These files are actually written to a virtual fs in encrypted memory, no nothing leaks to host.
-    with open(os.path.join(KEY_FOLDER, "private_key.pem"), "wb") as private_file:
+    with open(os.path.join(config.KEY_FOLDER, "private_key.pem"), "wb") as private_file:
         private_file.write(
             private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -156,7 +142,7 @@ def generate_key_pair():
             )
         )
 
-    with open(os.path.join(KEY_FOLDER, "public_key.pem"), "wb") as public_file:
+    with open(os.path.join(config.KEY_FOLDER, "public_key.pem"), "wb") as public_file:
         public_file.write(
             public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -167,7 +153,7 @@ def generate_key_pair():
     return private_key, public_key
 
 def read_key_pair():
-    with open(os.path.join(KEY_FOLDER, "public_key.pem"), "rb") as pub_file:
+    with open(os.path.join(config.KEY_FOLDER, "public_key.pem"), "rb") as pub_file:
         public_key = serialization.load_pem_public_key(
             pub_file.read()
         )
@@ -177,7 +163,7 @@ def read_key_pair():
     else:
         raise ValueError("The public key is not of type RSAPublicKey.")
 
-    with open(os.path.join(KEY_FOLDER, "private_key.pem"), "rb") as priv_file:
+    with open(os.path.join(config.KEY_FOLDER, "private_key.pem"), "rb") as priv_file:
         private_key = serialization.load_pem_private_key(
             priv_file.read(),
             password=None

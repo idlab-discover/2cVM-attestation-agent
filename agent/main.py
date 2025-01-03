@@ -2,10 +2,11 @@ import json
 import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+import agent.config as config
 from agent.models.commitment_manifest import ThreadSafeCommitmentManifest
 from agent.models.party_submission_state import ThreadSafePartySubmissionState
 from agent.routes import lock, attestation, application, status
-from agent.routes.lock import HOME_DIR, LOCK_FILE, LOCK_FOLDER
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,8 +14,8 @@ async def lifespan(app: FastAPI):
     # (TODO: verify that snpguest and wasmtime are in read-only folders (not for demonstrator))
     
     # Create .attestation_agent dir
-    if not os.path.exists(HOME_DIR):
-        os.mkdir(HOME_DIR)
+    if not os.path.exists(config.AGENT_DIR):
+        os.mkdir(config.AGENT_DIR)
     
     # Create empty CommitentManifest
     commitment_manifest = ThreadSafeCommitmentManifest()
@@ -25,9 +26,9 @@ async def lifespan(app: FastAPI):
     app.state.party_submission_state = party_submission_state
     
     # Check if lock already exists on disk, if yes -> load commitment + party-submission state
-    file_path = os.path.join(LOCK_FOLDER, LOCK_FILE)
-    if os.path.exists(LOCK_FOLDER) and os.path.exists(file_path):    
-        with open(file_path, "r") as file:
+    if os.path.exists(config.LOCK_FOLDER) and os.path.exists(config.LOCK_FILE):    
+        
+        with open(config.LOCK_FILE, "r") as file:
             config_data = json.load(file)
             await commitment_manifest.lock(**config_data)
             

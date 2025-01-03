@@ -9,16 +9,6 @@ from agent.models.verifiable_credential import VerifiableCredential
 
 router = APIRouter(prefix="/v1/application", tags=["Application"])
 
-HOME_DIR = os.path.expanduser("~")
-BIN_FILE = ".wasmtime/bin/wasmtime"
-
-# TODO:
-# Check if manifest is expected according to lock
-# Verify party identity
-# Read manifest, data or binary?
-# Store binary and input data
-# Check if all data and bins are present, if yes -> couple bins and provide them with data. Run.
-
 @router.post("/")
 async def application(request: Request):
     try:

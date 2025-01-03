@@ -4,15 +4,11 @@ import traceback
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from agent.models.commitment_manifest import CommitmentManifest, ThreadSafeCommitmentManifest
+import agent.config as config
 
 router = APIRouter(prefix="/v1/lock", tags=["Lock"])
 
-# Define folders for manifest
-HOME_DIR = os.path.join(os.path.expanduser("~"), ".attestation-agent")
-LOCK_FOLDER = os.path.join(HOME_DIR, "lock")
-LOCK_FILE = "commitment-manifest.json"
-
+# This endpoint locks the TEE to a commitment manifest
 @router.post("/")
 async def lock(request: Request):
     data = await request.json()
@@ -23,7 +19,9 @@ async def lock(request: Request):
         if thread_safe_commitment_manifest != None and thread_safe_commitment_manifest.data != None:
             raise HTTPException(status_code=400, detail="TEE is already locked")
 
-        # Not locked, parse JSON
+        if not os.path.exists(config.LOCK_FOLDER):
+            os.makedirs(config.LOCK_FOLDER)
+        
         data = await request.json()
 
         # If folder does not exist, create it
@@ -34,8 +32,7 @@ async def lock(request: Request):
         file_path = os.path.join(LOCK_FOLDER, LOCK_FILE)
 
         # Note: writing is fine here as this is a tmpfs mounted from memory. 
-        # Nothing is ever really written to disk and thus everything is encrypted.
-        with open(file_path, 'w') as file:
+        with open(config.LOCK_FILE, 'w') as file:
             json.dump(data, file)
             # Save CM as state so other enpoints don't need to parse json file every time
             thread_safe_commitment_manifest = ThreadSafeCommitmentManifest()
