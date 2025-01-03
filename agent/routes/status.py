@@ -7,6 +7,9 @@ router = APIRouter(prefix="/v1/status", tags=["Status"])
 @router.post("/")
 async def status(request: Request):
     try:
+        
+        # (TODO: check if wasm process is still running)
+        
         data = {
             # TODO: determine if result is available
             "result_available": True,

@@ -71,8 +71,9 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid nonce: {e}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
 
