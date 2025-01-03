@@ -9,16 +9,16 @@ from pydantic import BaseModel, RootModel
 
 
 class PartySubmissionState(RootModel):
-    Dict[str, bool]
+    root: Dict[str, bool]
 
     def mark_data_as_submitted(self, data_name: str):
-        if data_name in self.status:
-            self.status[data_name] = True
+        if data_name in self.root:
+            self.root[data_name] = True
         else:
             raise KeyError(f"'{data_name}' is not expected.")
         
-    def is_all_data_present(self) -> bool:
-        return all(self.status.values())
+    def all_data_present(self) -> bool:
+        return all(self.root.values())
 
 class ThreadSafePartySubmissionState():
     _data : Optional[PartySubmissionState] = None
@@ -32,6 +32,7 @@ class ThreadSafePartySubmissionState():
             await self._asyncio_lock.acquire()
             if self._data == None:
                 self._data = PartySubmissionState(**data)
+                print(self._data)
         finally:
                 self._asyncio_lock.release()
         
@@ -43,12 +44,16 @@ class ThreadSafePartySubmissionState():
         finally:
                 self._asyncio_lock.release()
     
-    async def is_all_data_present(self):
+    async def all_data_present(self):
         try:
             await self._asyncio_lock.acquire()
             if self._data != None:
-                return self._data.is_all_data_present()
+                return self._data.all_data_present()
         finally:
                 self._asyncio_lock.release()
+                
+    @property
+    def data(self):
+        return self._data
         
         

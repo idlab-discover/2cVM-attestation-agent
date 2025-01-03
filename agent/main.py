@@ -1,6 +1,8 @@
 import json
 import os
+
 from fastapi import FastAPI
+
 from contextlib import asynccontextmanager
 
 import agent.config as config
@@ -32,11 +34,30 @@ async def lifespan(app: FastAPI):
             config_data = json.load(file)
             await commitment_manifest.lock(**config_data)
             
-            # TODO: extract this from CM
-            party_data = {"hello": False}
-            await party_submission_state.lock(**party_data)
+        party_data = read_party_submission_state(commitment_manifest)
+        await party_submission_state.lock(**party_data)
     yield
     
+
+def read_party_submission_state(commitment_manifest: ThreadSafeCommitmentManifest):
+    submission_state = {}
+    for component in commitment_manifest.commitment_data.components:
+        dir = os.path.join(config.AGENT_DIR, "component")
+        if os.path.exists(os.path.join(dir, component.name)):
+            submission_state[component.name] = True
+        else:
+            submission_state[component.name] = False
+        
+    for data in commitment_manifest.commitment_data.data:
+        dir = os.path.join(config.AGENT_DIR, "data")
+        if os.path.exists(os.path.join(dir, data.name)):
+            submission_state[data.name] = True
+        else:
+            submission_state[data.name] = False
+        
+    return submission_state
+    
+
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(lock.router)
