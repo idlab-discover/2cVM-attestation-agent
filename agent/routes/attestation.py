@@ -32,7 +32,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
         ).decode("utf-8")
 
         # Mock platform attestation for dev (set in config.py)
-        if not config.SEV_SNP_enabled:
+        if not config.SEV_SNP_ENABLED:
             platform_attestation = "abcdef"
         else:
             report_path = generate_platform_report(hex_nonce, tee_pub_key)
@@ -66,7 +66,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
             "tee_pub_key": tee_pub_key_b64
         }
 
-        if config.SEV_SNP_enabled:
+        if config.SEV_SNP_ENABLED:
             os.remove(report_path)
 
         return JSONResponse(content=full_attestation)
