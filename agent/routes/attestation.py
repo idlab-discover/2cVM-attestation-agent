@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 
 import agent.config as config
 from agent.models.commitment_manifest import CommitmentManifest, ThreadSafeCommitmentManifest
-from agent.config import SEV_SNP_enabled
+router = APIRouter(prefix=config.ATTESTATION_API_PATH, tags=["Application"])
 
 router = APIRouter(prefix="/v1/attestation", tags=["Application"])
 
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/v1/attestation", tags=["Application"])
 async def attestation(request: Request, hex_nonce: str = Query(...)):
     try:
         # Check if key pair already exist, else generate
-        if not (os.path.exists(os.path.join(config.AGENT_DIR, "private_key.pem")) or os.path.exists(os.path.join(config.AGENT_DIR, "public_key.pem"))):
+        if not (os.path.exists(config.PRIVATE_KEY_FILE) or os.path.exists(config.PUBLIC_KEY_FILE)):
             tee_priv_key, tee_pub_key = generate_key_pair()
         else:
             tee_priv_key, tee_pub_key = read_key_pair()
@@ -33,7 +33,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
             ).decode("utf-8")
 
         # Mock platform attestation for dev (set in config.py)
-        if not SEV_SNP_enabled:
+        if not config.SEV_SNP_enabled:
             platform_attestation = "abcdef"
         else:
             report_path = generate_platform_report(hex_nonce, tee_pub_key)
@@ -134,7 +134,7 @@ def generate_key_pair():
     
     # Write keys to file
     # These files are actually written to a virtual fs in encrypted memory, no nothing leaks to host.
-    with open(os.path.join(config.KEY_FOLDER, "private_key.pem"), "wb") as private_file:
+    with open(config.PRIVATE_KEY_FILE, "wb") as private_file:
         private_file.write(
             private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -143,7 +143,7 @@ def generate_key_pair():
             )
         )
 
-    with open(os.path.join(config.KEY_FOLDER, "public_key.pem"), "wb") as public_file:
+    with open(config.PUBLIC_KEY_FILE, "wb") as public_file:
         public_file.write(
             public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -154,7 +154,7 @@ def generate_key_pair():
     return private_key, public_key
 
 def read_key_pair():
-    with open(os.path.join(config.KEY_FOLDER, "public_key.pem"), "rb") as pub_file:
+    with open(config.PUBLIC_KEY_FILE, "rb") as pub_file:
         public_key = serialization.load_pem_public_key(
             pub_file.read()
         )
@@ -164,7 +164,7 @@ def read_key_pair():
     else:
         raise ValueError("The public key is not of type RSAPublicKey.")
 
-    with open(os.path.join(config.KEY_FOLDER, "private_key.pem"), "rb") as priv_file:
+    with open(config.PRIVATE_KEY_FILE, "rb") as priv_file:
         private_key = serialization.load_pem_private_key(
             priv_file.read(),
             password=None

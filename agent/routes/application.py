@@ -12,7 +12,7 @@ from agent.models.party_submission_state import ThreadSafePartySubmissionState
 from agent.models.verifiable_credential import VerifiableCredential
 
 
-router = APIRouter(prefix="/v1/application", tags=["Application"])
+router = APIRouter(prefix=config.APPLICATION_API_PATH, tags=["Application"])
 
 @router.post("/")
 async def application(request: Request):

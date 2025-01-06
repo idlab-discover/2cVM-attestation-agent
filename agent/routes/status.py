@@ -1,8 +1,9 @@
 import json
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
+import agent.config as config
 
-router = APIRouter(prefix="/v1/status", tags=["Status"])
+router = APIRouter(prefix=config.STATUS_API_PATH, tags=["Status"])
 
 @router.post("/")
 async def status(request: Request):

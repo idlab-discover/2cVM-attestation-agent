@@ -8,7 +8,7 @@ import agent.config as config
 from agent.models.commitment_manifest import ThreadSafeCommitmentManifest
 from agent.models.party_submission_state import ThreadSafePartySubmissionState
 
-router = APIRouter(prefix="/v1/lock", tags=["Lock"])
+router = APIRouter(prefix=config.LOCK_API_PATH, tags=["Lock"])
 
 # This endpoint locks the TEE to a commitment manifest
 @router.post("/")
