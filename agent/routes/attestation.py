@@ -66,7 +66,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
             "tee_pub_key": tee_pub_key_b64
         }
 
-        if SEV_SNP_enabled:
+        if config.SEV_SNP_enabled:
             os.remove(report_path)
 
         return JSONResponse(content=full_attestation)
