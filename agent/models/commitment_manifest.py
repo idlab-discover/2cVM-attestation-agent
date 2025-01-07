@@ -24,7 +24,6 @@ class Data(BaseModel):
 
 class DataPermissionBase(BaseModel):
     type: str = Field(..., readonly=True)
-    filename: str = Field(..., readonly=True)
 
 
 class DataPermissionComposite(DataPermissionBase):

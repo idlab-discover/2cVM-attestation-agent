@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 import agent.config as config
 from agent.models.commitment_manifest import ThreadSafeCommitmentManifest
 from agent.models.party_submission_state import ThreadSafePartySubmissionState
-from agent.routes import lock, attestation, application, status
+from agent.routes import clear, lock, attestation, application, status
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print(config.APPLICATION_API_PATH)
     # (TODO: verify that .attestation_agent dir is in fact a tmpfs (to prevent writing to unencrypted disk))
     # (TODO: verify that snpguest and wasmtime are in read-only folders (not for demonstrator))
 
@@ -43,15 +44,15 @@ async def lifespan(app: FastAPI):
 def read_party_submission_state(commitment_manifest: ThreadSafeCommitmentManifest):
     submission_state = {}
     for component in commitment_manifest.commitment_data.components:
-        dir = os.path.join(config.AGENT_DIR, "component")
-        if os.path.exists(os.path.join(dir, component.name)):
+        dir = os.path.join(config.COMPONENT_FOLDER, "deps")
+        if os.path.exists(os.path.join(dir, component.participant, component.name + ".wasm")):
             submission_state[component.name] = True
         else:
             submission_state[component.name] = False
 
     for data in commitment_manifest.commitment_data.data:
-        dir = os.path.join(config.AGENT_DIR, "data")
-        if os.path.exists(os.path.join(dir, data.name)):
+        dir = os.path.join(config.DATA_FOLDER)
+        if os.path.exists(os.path.join(dir, data.participant, data.name)):
             submission_state[data.name] = True
         else:
             submission_state[data.name] = False
