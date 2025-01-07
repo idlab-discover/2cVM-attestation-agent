@@ -65,3 +65,5 @@ app.include_router(lock.router)
 app.include_router(attestation.router)
 app.include_router(application.router)
 app.include_router(status.router)
+if config.DEV_MODE:
+    app.include_router(clear.router)

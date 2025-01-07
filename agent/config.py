@@ -2,6 +2,7 @@ import os
 
 # General
 SEV_SNP_ENABLED = False  # Mock platform report for debuggin on non SEV-SNP systems
+DEV_MODE = True
 HOME_DIR = os.path.expanduser("~")
 AGENT_DIR = os.path.join(HOME_DIR, ".attestation-agent")
 API_VERSION = "v1"
@@ -32,3 +33,7 @@ LOCK_FILE = os.path.join(LOCK_FOLDER, "commitment-manifest.json")
 # routes/status
 STATUS_API_PATH = os.path.join(
     "/", API_VERSION, "status")
+
+# routes/clear
+CLEAR_API_PATH = os.path.join(
+    "/", API_VERSION, "clear")
