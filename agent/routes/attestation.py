@@ -44,9 +44,9 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
         # Verify that platform is locked, if not -> return empty
         commitment_manifest: ThreadSafeCommitmentManifest = getattr(
             request.app.state, 'commitment_manifest', None)
-        if commitment_manifest != None and commitment_manifest.data != None:
+        if commitment_manifest != None and commitment_manifest.commitment_data != None:
 
-            commitment_manifest_data: CommitmentManifest = commitment_manifest.data
+            commitment_manifest_data: CommitmentManifest = commitment_manifest.commitment_data
             commitment_manifest_signature = tee_priv_key.sign(
                 commitment_manifest.model_dump_json().encode(),
                 padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
