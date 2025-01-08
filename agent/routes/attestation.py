@@ -3,6 +3,7 @@ import subprocess
 import os
 import hashlib
 import getpass
+import traceback
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -48,7 +49,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
 
             commitment_manifest_data: CommitmentManifest = commitment_manifest.commitment_data
             commitment_manifest_signature = tee_priv_key.sign(
-                commitment_manifest.model_dump_json().encode(),
+                commitment_manifest.commitment_data.model_dump_json().encode(),
                 padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                             salt_length=padding.PSS.MAX_LENGTH),
                 hashes.SHA256()
@@ -76,6 +77,7 @@ async def attestation(request: Request, hex_nonce: str = Query(...)):
     except HTTPException as e:
         raise e
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
