@@ -2,7 +2,7 @@ import os
 
 # General
 SEV_SNP_ENABLED = False  # Mock platform report for debuggin on non SEV-SNP systems
-DEV_MODE = True
+DEV_MODE = True # Enables clear endpoint
 HOME_DIR = os.path.expanduser("~")
 AGENT_DIR = os.path.join(HOME_DIR, ".attestation-agent")
 API_VERSION = "v1"
