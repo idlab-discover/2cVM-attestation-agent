@@ -53,6 +53,8 @@ class CommitmentManifest(BaseModel):
     data: List[Data] = Field(..., readonly=True)
     composition: str = Field(..., readonly=True)
     permissions: List[Permission] = Field(..., readonly=True)
+    transferRequestIdIMEC: str = Field(..., readonly=True)
+    transferRequestIdFabless: str = Field(..., readonly=True)
 
     class Config:
         arbitrary_types_allowed = True
