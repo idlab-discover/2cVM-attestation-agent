@@ -1,7 +1,7 @@
 import asyncio
 from pydantic import BaseModel, Field
 from typing import List, Optional
-
+from typing import Union
 from agent.models.verifiable_credential import VerifiableCredential
 
 
@@ -43,7 +43,7 @@ class Output(BaseModel):
 
 class Permission(BaseModel):
     component: str = Field(..., readonly=True)
-    data_permissions: List[DataPermissionBase] = Field(..., readonly=True)
+    data_permissions: List[Union[DataPermissionComposite, DataPermissionSingle]] = Field(..., readonly=True)
     output: List[Output] = Field(..., readonly=True)
 
 
@@ -53,6 +53,8 @@ class CommitmentManifest(BaseModel):
     data: List[Data] = Field(..., readonly=True)
     composition: str = Field(..., readonly=True)
     permissions: List[Permission] = Field(..., readonly=True)
+    transferRequestIdIMEC: str = Field(..., readonly=True)
+    transferRequestIdFabless: str = Field(..., readonly=True)
 
     class Config:
         arbitrary_types_allowed = True
