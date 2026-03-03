@@ -32,14 +32,14 @@ async def lock(request: Request):
 
         data = await request.json()
 
-        # Note: writing is fine here as this is a tmpfs mounted from memory.
-        with open(config.LOCK_FILE, 'w') as file:
-            json.dump(data, file)
-
-        # Save CM as state so other enpoints don't need to parse json file every time
+        # Save CM as state so other endpoints don't need to parse json file every time
         thread_safe_commitment_manifest = ThreadSafeCommitmentManifest()
         await thread_safe_commitment_manifest.lock(**data)
         request.app.state.commitment_manifest = thread_safe_commitment_manifest
+
+        # Note: writing is fine here as this is a tmpfs mounted from memory.
+        with open(config.LOCK_FILE, 'w') as file:
+            json.dump(data, file)
 
         party_data = parse_party_submission_state(
             thread_safe_commitment_manifest)
@@ -49,9 +49,13 @@ async def lock(request: Request):
 
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail="Invalid JSON format")
+    except ValueError as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
     except HTTPException as e:
         raise e
     except Exception as e:
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

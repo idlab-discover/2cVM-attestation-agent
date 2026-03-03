@@ -48,9 +48,18 @@ async def application(request: Request):
             dir = os.path.join(config.COMPONENT_FOLDER, "deps", VC_participant)
             if not os.path.exists(dir):
                 os.makedirs(dir)
-            with open(os.path.join(dir, VC_manifest_id + ".wasm"), 'wb') as file:
+            # Quarantine component
+            path = os.path.join(dir, VC_manifest_id + "-quarantine.wasm")
+            with open(os.path.join(dir, VC_manifest_id + "-quarantine.wasm"), 'wb') as file:
                 file.write(base64.b64decode(
                     verifiable_credential.credentialSubject.manifest.body))
+
+            # Compare WIT to CM and remove component from quarantine if OK
+            if wit_ok(path, VC_manifest_id, thread_safe_commitment_manifest):
+                os.rename(os.path.join(dir, VC_manifest_id + "-quarantine.wasm"),
+                          os.path.join(dir, VC_manifest_id + ".wasm"))
+            else:
+                raise HTTPException(status_code=400, detail="WIT check failed")
 
         elif VC_manifest_content_type == "data":
             dir = os.path.join(config.DATA_FOLDER, VC_participant)
@@ -118,6 +127,59 @@ async def result(request: Request, user_identification: str = Query(...)):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
+def wit_ok(component_path, component_id, commitment_manifest):
+    # Extract WIT from component
+    wit_result = subprocess.run(
+        ["wasm-tools", "component", "wit", "-j", str(component_path)],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    data = json.loads(wit_result.stdout)
+
+    imported_interfaces = set()
+    worlds = data.get("worlds", [])
+    interfaces = data.get("interfaces", [])
+    packages = data.get("packages", [])
+
+    # Build set of 'namespace:package/interface@major.minor.patch' from WIT
+    for world in worlds:
+        world_imports = world.get("imports", {})
+
+        for import_key, import_val in world_imports.items():
+            if "interface" in import_val:
+                interface_id = import_val["interface"]["id"]
+                interface_obj = interfaces[interface_id]
+
+                interface_name = interface_obj.get("name")
+                package_id = interface_obj.get("package")
+
+                if interface_name and package_id is not None:
+                    package_string = packages[package_id].get("name", "")
+
+                    # Split at '@' to inject the interface name
+                    if "@" in package_string:
+                        base_pkg, version = package_string.split("@", 1)
+                        full_name = f"{base_pkg}/{interface_name}@{version}"
+                    else:
+                        # Fallback just in case the package has no version
+                        full_name = f"{package_string}/{interface_name}"
+
+                    imported_interfaces.add(full_name)
+
+    print("packages imported by component " + str(imported_interfaces))
+
+    # Compare permissions from CM to WIT
+    matches = next(x for x in commitment_manifest.commitment_data.permissions if x.component == component_id)
+    allowed_set = set(matches.wasi_imports)
+    print("allowed from manifest " + str(allowed_set))
+    violations = imported_interfaces - allowed_set
+
+    print("violations: " + str(violations))
+
+    return len(violations) == 0
 
 def compose_wasm(thread_safe_commitment_manifest: ThreadSafeCommitmentManifest):
     # Write WAC from commitment manifest to file in components folder

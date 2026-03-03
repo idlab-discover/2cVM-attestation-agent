@@ -1,9 +1,19 @@
 import asyncio
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import re
+
+from pydantic import BaseModel, Field, AfterValidator
+from typing import List, Optional, Union, Annotated
 from typing import Union
 from agent.models.verifiable_credential import VerifiableCredential
 
+
+def validate_wasi_import(value: str) -> str:
+    pattern = r'^[a-z0-9_-]+:[a-z0-9_-]+/[a-z0-9_-]+@\d+\.\d+\.\d+$'
+    if not re.match(pattern, value):
+        raise ValueError(f"Invalid WASI import format: '{value}'. Expected format: 'namespace:package/interface@major.minor.patch'")
+    return value
+
+WasiImport = Annotated[str, AfterValidator(validate_wasi_import)]
 
 # As CM is only set once, all properties are private and there are no setter.
 
@@ -45,7 +55,7 @@ class Permission(BaseModel):
     component: str = Field(..., readonly=True)
     data_permissions: List[Union[DataPermissionComposite, DataPermissionSingle]] = Field(..., readonly=True)
     output: List[Output] = Field(..., readonly=True)
-
+    wasi_imports: List[WasiImport] = Field(..., default_factory=list, readonly=True)
 
 class CommitmentManifest(BaseModel):
     participants: List[Participant] = Field(..., readonly=True)
@@ -83,3 +93,4 @@ class ThreadSafeCommitmentManifest():
     @property
     def commitment_data(self):
         return self._commitment_data
+
